@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cloud Drive</title>
+  <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.3/dist/amazon-cognito-identity.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 40%, #e0f2fe 100%);
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Decorative background blobs */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -120px;
+      left: -120px;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -100px;
+      right: -100px;
+      width: 350px;
+      height: 350px;
+      background: radial-gradient(circle, rgba(96,165,250,0.15) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    /* Wrapper: image panel + form panel side by side */
+    .wrapper {
+      display: flex;
+      width: 100%;
+      max-width: 820px;
+      min-height: 520px;
+      border-radius: 22px;
+      overflow: hidden;
+      box-shadow: 0 8px 40px rgba(59,130,246,0.13), 0 2px 8px rgba(0,0,0,0.07);
+      position: relative;
+      z-index: 1;
+    }
+
+    /* LEFT: image panel */
+    .image-panel {
+      flex: 1;
+      background: linear-gradient(160deg, #1d4ed8 0%, #3b82f6 60%, #60a5fa 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2.5rem 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .image-panel::before {
+      content: '';
+      position: absolute;
+      top: -60px;
+      right: -60px;
+      width: 200px;
+      height: 200px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 50%;
+    }
+
+    .image-panel::after {
+      content: '';
+      position: absolute;
+      bottom: -40px;
+      left: -40px;
+      width: 160px;
+      height: 160px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 50%;
+    }
+
+    .image-panel img {
+      width: 180px;
+      height: 180px;
+      object-fit: contain;
+      border-radius: 24px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      position: relative;
+      z-index: 1;
+    }
+
+    .image-panel .brand-name {
+      margin-top: 1.5rem;
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.01em;
+      position: relative;
+      z-index: 1;
+    }
+
+    .image-panel .brand-name span {
+      color: #bfdbfe;
+    }
+
+    .image-panel .tagline {
+      margin-top: 0.5rem;
+      font-size: 13px;
+      color: rgba(255,255,255,0.72);
+      position: relative;
+      z-index: 1;
+      text-align: center;
+    }
+
+    /* RIGHT: form card */
+    .card {
+      flex: 1;
+      background: #ffffff;
+      padding: 2.5rem 2rem 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 1.75rem;
+    }
+
+    .field { margin-bottom: 14px; }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 5px;
+    }
+
+    input[type=email],
+    input[type=password],
+    input[type=text] {
+      width: 100%;
+      height: 40px;
+      padding: 0 12px;
+      font-size: 14px;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 9px;
+      color: #111827;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    input:focus {
+      border-color: #93c5fd;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+
+    .btn-primary {
+      width: 100%;
+      height: 40px;
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 6px;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .btn-primary:hover { background: #2563eb; }
+    .btn-primary:active { transform: scale(0.98); }
+
+    .btn-ghost {
+      width: 100%;
+      height: 40px;
+      background: transparent;
+      color: #374151;
+      border: 1px solid #e5e7eb;
+      border-radius: 9px;
+      font-size: 13px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .btn-ghost:hover {
+      background: #f8fafc;
+      border-color: #d1d5db;
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 1.25rem 0 1rem;
+    }
+
+    .divider hr {
+      flex: 1;
+      border: none;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .divider span { font-size: 12px; color: #9ca3af; }
+
+    .row {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 1rem;
+    }
+
+    .link {
+      font-size: 13px;
+      color: #3b82f6;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .link:hover { color: #2563eb; text-decoration: underline; }
+
+    .back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #6b7280;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      margin-bottom: 1.5rem;
+    }
+
+    .back:hover { color: #111827; }
+
+    .back svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .hidden { display: none !important; }
+
+    .notice {
+      font-size: 12px;
+      color: #9ca3af;
+      text-align: center;
+      margin-top: 1.5rem;
+      letter-spacing: 0.02em;
+    }
+
+    .verify-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #f0fdf4;
+      color: #15803d;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 99px;
+      margin-bottom: 1rem;
+    }
+
+    /* Responsive: stack on small screens */
+    @media (max-width: 600px) {
+      .wrapper { flex-direction: column; min-height: unset; }
+      .image-panel { padding: 2rem 1.5rem 1.5rem; }
+      .image-panel img { width: 110px; height: 110px; }
+      .image-panel .brand-name { font-size: 20px; }
+      .card { padding: 2rem 1.5rem; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="wrapper">
+
+  <!-- LEFT: Logo / Image Panel -->
+  <div class="image-panel">
+    <img src="image.png" alt="CloudDrive Logo" />
+    <div class="brand-name">Cloud<span>Drive</span></div>
+    <div class="tagline">Secure · Encrypted · Private</div>
+  </div>
+
+  <!-- RIGHT: Form Panel -->
+  <div class="card">
+
+    <!-- LOGIN -->
+    <div id="loginBox">
+      <h2>Welcome back</h2>
+      <p class="subtitle">Sign in to access your files</p>
+      <div class="field"><label>Email</label><input type="email" id="loginEmail" placeholder="you@example.com" /></div>
+      <div class="field"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••••" /></div>
+      <button class="btn-primary" onclick="login()">Sign in</button>
+      <div class="divider"><hr><span>or</span><hr></div>
+      <button class="btn-ghost" onclick="showSignup()">Create a new account</button>
+      <div class="row">
+        <button class="link" onclick="showForgot()">Forgot password?</button>
+      </div>
+    </div>
+
+    <!-- SIGNUP -->
+    <div id="signupBox" class="hidden">
+      <button class="back" onclick="showLogin()">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+        Back to sign in
+      </button>
+      <h2>Create account</h2>
+      <p class="subtitle">Start storing your files in the cloud</p>
+      <div class="field"><label>Email</label><input type="email" id="signupEmail" placeholder="you@example.com" /></div>
+      <div class="field"><label>Password</label><input type="password" id="signupPassword" placeholder="Min. 8 characters" /></div>
+      <button class="btn-primary" onclick="signup()">Create account</button>
+
+      <div id="verifySection" class="hidden" style="margin-top: 1.25rem;">
+        <div class="verify-hint">&#x2713; Check your email for a code</div>
+        <div class="field"><label>Verification code</label><input type="text" id="verifyCode" placeholder="000000" /></div>
+        <button class="btn-primary" onclick="verify()">Verify email</button>
+      </div>
+    </div>
+
+    <!-- FORGOT -->
+    <div id="forgotBox" class="hidden">
+      <button class="back" onclick="showLogin()">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+        Back to sign in
+      </button>
+      <h2>Reset password</h2>
+      <p class="subtitle">We'll send a reset code to your email</p>
+      <div class="field"><label>Email</label><input type="email" id="forgotEmail" placeholder="you@example.com" /></div>
+      <button class="btn-primary" onclick="forgotPassword()">Send reset code</button>
+
+      <div id="resetSection" class="hidden" style="margin-top: 1.25rem;">
+        <div class="field"><label>Reset code</label><input type="text" id="resetCode" placeholder="000000" /></div>
+        <div class="field"><label>New password</label><input type="password" id="newPassword" placeholder="Min. 8 characters" /></div>
+        <button class="btn-primary" onclick="resetPassword()">Set new password</button>
+      </div>
+    </div>
+
+    <p class="notice">Secure &middot; Encrypted &middot; Private</p>
+  </div>
+
+</div>
+
+<script>
+const poolData = {
+  UserPoolId: "eu-north-1_kTVMaPQra",
+  ClientId: "gbo5ed1r57tue146tnal2t2s2"
+};
+const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+
+function showLogin() {
+  document.getElementById("loginBox").classList.remove("hidden");
+  document.getElementById("signupBox").classList.add("hidden");
+  document.getElementById("forgotBox").classList.add("hidden");
+}
+function showSignup() {
+  document.getElementById("loginBox").classList.add("hidden");
+  document.getElementById("signupBox").classList.remove("hidden");
+  document.getElementById("forgotBox").classList.add("hidden");
+}
+function showForgot() {
+  document.getElementById("loginBox").classList.add("hidden");
+  document.getElementById("signupBox").classList.add("hidden");
+  document.getElementById("forgotBox").classList.remove("hidden");
+}
+
+function signup() {
+  const email = document.getElementById("signupEmail").value.trim();
+  const password = document.getElementById("signupPassword").value.trim();
+  const attrs = [new AmazonCognitoIdentity.CognitoUserAttribute({ Name: "email", Value: email })];
+  userPool.signUp(email, password, attrs, null, (err) => {
+    if (err) return alert(err.message);
+    document.getElementById("verifySection").classList.remove("hidden");
+  });
+}
+
+function verify() {
+  const email = document.getElementById("signupEmail").value.trim();
+  const code = document.getElementById("verifyCode").value.trim();
+  const user = new AmazonCognitoIdentity.CognitoUser({ Username: email, Pool: userPool });
+  user.confirmRegistration(code, true, (err) => {
+    if (err) return alert(err.message);
+    alert("Account verified! Please sign in.");
+    showLogin();
+    document.getElementById("loginEmail").value = email;
+  });
+}
+
+function login() {
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value.trim();
+  const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({ Username: email, Password: password });
+  const user = new AmazonCognitoIdentity.CognitoUser({ Username: email, Pool: userPool });
+  user.authenticateUser(authDetails, {
+    onSuccess: (result) => {
+      localStorage.setItem("token", result.getIdToken().getJwtToken());
+      localStorage.setItem("email", email);
+      alert("Login successful! Welcome to Cloud Drive ");
+      window.location.href = "Dashboard.html";
+      
+    },
+    onFailure: (err) => alert(err.message)
+  });
+}
+
+function forgotPassword() {
+  const email = document.getElementById("forgotEmail").value.trim();
+  const user = new AmazonCognitoIdentity.CognitoUser({ Username: email, Pool: userPool });
+  user.forgotPassword({
+    onSuccess: () => document.getElementById("resetSection").classList.remove("hidden"),
+    onFailure: (err) => alert(err.message)
+  });
+}
+
+function resetPassword() {
+  const email = document.getElementById("forgotEmail").value.trim();
+  const code = document.getElementById("resetCode").value.trim();
+  const newPassword = document.getElementById("newPassword").value.trim();
+  const user = new AmazonCognitoIdentity.CognitoUser({ Username: email, Pool: userPool });
+  user.confirmPassword(code, newPassword, {
+    onSuccess: () => {
+      alert("Password reset! Please sign in.");
+      showLogin();
+      document.getElementById("loginEmail").value = email;
+    },
+    onFailure: (err) => alert(err.message)
+  });
+}
+</script>
+</body>
+</html>
